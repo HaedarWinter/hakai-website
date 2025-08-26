@@ -5,69 +5,7 @@
 <!-- Page Wrapper -->
 <div id="wrapper">
 
-    <!-- Sidebar -->
-    <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
-
-        <!-- Sidebar - Brand -->
-
-        <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{route('dashboard')}}">
-            <div class="sidebar-brand-icon ">
-                <i class="fas fa-tasks"></i>
-            </div>
-            <div class="sidebar-brand-text mx-4">HAKAI</div>
-        </a>
-
-        <!-- Divider -->
-        <hr class="sidebar-divider my-0">
-
-        <!-- Nav Item - Dashboard -->
-        <li class="nav-item {{ $menuDashboard ?? ''}} ">
-            <a class="nav-link" href="{{route('dashboard')}}">
-                <i class="fas fa-fw fa-tachometer-alt"></i>
-                <span>Dashboard</span></a>
-        </li>
-
-        <!-- Divider -->
-        <hr class="sidebar-divider">
-        <!-- Divider -->
-
-        <!-- Heading -->
-        <div class="sidebar-heading">
-            Menu Admin
-        </div>
-        <!-- Nav Data - User -->
-        <li class="nav-item {{ $menuAdminUser ?? ''}}">
-            <a class="nav-link" href="{{route('user')}}" >
-                <i class="fas fa-fw fa-user"></i>
-                <span>Data User</span></a>
-        </li>
-        <!-- Nav Data - Tugas -->
-        <li class="nav-item {{ $menuTugas ?? '' }} ">
-            <a class="nav-link" href="{{route('tugas')}}">
-                <i class="fas fa-fw fa-tasks"></i>
-                <span>Data Tugas</span></a>
-        </li>
-        <!-- Divider -->
-        <hr class="sidebar-divider d-none d-md-block">
-        <!-- Heading -->
-        <div class="sidebar-heading">
-            Menu Karyawan
-        </div>
-        <!-- Nav Item - Tables -->
-        <li class="nav-item">
-            <a class="nav-link" href="tables.html">
-                <i class="fas fa-fw fa-tasks"></i>
-                <span>Data Tugas</span></a>
-        </li>
-        <hr class="sidebar-divider">
-
-        <!-- Sidebar Toggler (Sidebar) -->
-        <div class="text-center d-none d-md-inline">
-            <button class="rounded-circle border-0" id="sidebarToggle"></button>
-        </div>
-
-    </ul>
-    <!-- End of Sidebar -->
+    @include('layouts/sidebar')
 
     <!-- Content Wrapper -->
     <div id="content-wrapper" class="d-flex flex-column">
@@ -288,37 +226,4 @@
     <i class="fas fa-angle-up"></i>
 </a>
 
-
-
-<script src="{{asset('sbadmin2/vendor/jquery/jquery.min.js')}}"></script>
-<script src="{{asset('sbadmin2/vendor/jquery-easing/jquery.easing.min.js')}}"></script>
-<script src="{{asset('sbadmin2/js/sb-admin-2.min.js')}}"></script>
-<script src="{{asset('sbadmin2/vendor/datatables/jquery.dataTables.min.js')}}"></script>
-<script src="{{asset('sbadmin2/vendor/datatables/dataTables.bootstrap4.min.js')}}"></script>
-<script src="{{asset('sbadmin2/js/demo/datatables-demo.js')}}"></script>
-<script src="{{asset('sweetalert2/dist/sweetalert2.all.min.js')}}"></script>
-<script src="{{asset('sbadmin2/vendor/bootstrap/js/bootstrap.bundle.min.js')}}"></script>
-
-@session('success')
-<script>
-    Swal.fire({
-        title: "Yeay!",
-        text: "{{session('success')}}!",
-        icon: "success"
-    });
-</script>
-@endsession
-
-@session('error')
-<script>
-    Swal.fire({
-        title: "Eits!",
-        text: "{{session('error')}}!",
-        icon: "error"
-    });
-</script>
-@endsession
-
-</body>
-
-</html>
+@include('layouts/footer')
