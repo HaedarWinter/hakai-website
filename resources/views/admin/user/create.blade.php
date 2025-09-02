@@ -1,85 +1,93 @@
 @extends('layouts.app')
+
 @section('content')
     <h1 class="h3 mb-4 text-gray-800">
-        <i class="fas fa-user-friends"></i>
+        <i class="fas fa-plus"></i>
         {{ $title }}
     </h1>
 
     <div class="card">
-        <div class="card-header d-flex flex-wrap justify-content-center justify-content-xl-between align-items-center py-3">
+        <!-- Card Header -->
+        <div class="card-header bg-primary d-flex flex-wrap py-3">
             <div class="mb-1 mr-2">
-            <a href="#" class="btn btn-sm btn-primary">
-                <i class="fas fa-plus mr-1"></i>
-                Tambah Data
-            </a>
-            </div>
-
-            <div>
-                <span>Export ke</span>
-                <a href="#" class="btn btn-sm btn-success">
-                    <i class="fas fa-file-excel mr-1"></i>
-                    Excel
-                </a>
-                <span class="mx-1">atau</span>
-                <a href="#" class="btn btn-sm btn-danger">
-                    <i class="fas fa-file-pdf mr-1"></i>
-                    PDF
+                <a href="{{ route('user.index') }}" class="btn btn-sm border-5 btn-outline-light">
+                    <i class="fas fa-arrow-circle-left mr-1"></i>
+                    Kembali
                 </a>
             </div>
         </div>
 
+        <!-- Card Body -->
         <div class="card-body">
-            <div class="table-responsive ">
-                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-                    <thead class="thead-dark text-center">
-                    <tr>
-                        <th>No</th>
-                        <th>Nama</th>
-                        <th>Email</th>
-                        <th>Jabatan</th>
-                        <th>Status</th>
-                        <th class="text-center" style="width: 100px;">
-                            <i class="fas fa-cog"></i>
-                        </th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    @foreach ($user as $item)
-                        <tr>
-                            <td class="text-center">{{ $loop -> iteration }}</td>
-                            <td>{{$item -> nama}}</td>
-                            <td class="text-center">
-                                <span class="badge badge-dark">
-                                    {{ $item -> email }}
-                                </span>
-                            </td>
-                            <td class="text-center">
-                                @if($item -> jabatan == 'Admin')
-                                    <span class="badge badge-success "> {{ $item -> jabatan }}</span>
-                                    @else
-                                    <span class="badge badge-warning"> {{ $item -> jabatan }}</span>
-                                    @endif
-                            </td>
-                            <td class="text-center">
-                                @if($item -> is_tugas)
-                                    <span class="badge badge-info ">Sedang Ditugaskan</span>
-                                @else
-                                    <span class="badge badge-danger ">Belum Ditugaskan</span>
-                                @endif
-                            </td>
-                            <td class="text-center">
-                                <a href="#" class="btn btn-sm btn-warning">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <a href="#" class="btn btn-sm btn-danger">
-                                    <i class="fas fa-trash"></i>
-                                </a>
-                            </td>
-                        </tr>
-                    @endforeach
-                    </tbody>
-                </table>
-            </div>
+            <form action="{{ route('user.store') }}" method="POST">
+                @csrf
+                <div class="row">
+                    <!-- Nama -->
+                    <div class="col-md-6 col-12 mb-3">
+                        <label><span class="text-danger">*</span> Nama :</label>
+                        <input type="text" name="nama" id="nama"
+                               class="form-control @error('nama') is-invalid @enderror"
+                               placeholder="Masukkan nama" value="{{ old('nama') }}">
+                        @error('nama')
+                        <small class="text-danger">{{ $message }}</small>
+                        @enderror
+                    </div>
+
+                    <!-- Email -->
+                    <div class="col-md-6 col-12 mb-3">
+                        <label for="email"><span class="text-danger">*</span> Email :</label>
+                        <input type="email" name="email" id="email"
+                               class="form-control @error('email') is-invalid @enderror"
+                               placeholder="Masukkan email" value="{{ old('email') }}">
+                        @error('email')
+                        <small class="text-danger">{{ $message }}</small>
+                        @enderror
+                    </div>
+
+                    <!-- Jabatan -->
+                    <div class="col-12 mb-3">
+                        <label for="jabatan"><span class="text-danger">*</span> Jabatan :</label>
+                        <select name="jabatan" id="jabatan"
+                                class="form-control @error('jabatan') is-invalid @enderror">
+                            <option selected disabled>-- Pilih Jabatan --</option>
+                            <option value="Admin" {{ old('jabatan') == 'Admin' ? 'selected' : '' }}>Admin</option>
+                            <option value="Karyawan" {{ old('jabatan') == 'Karyawan' ? 'selected' : '' }}>Karyawan</option>
+                        </select>
+                        @error('jabatan')
+                        <small class="text-danger">{{ $message }}</small>
+                        @enderror
+                    </div>
+
+                    <!-- Password -->
+                    <div class="col-md-6 col-12 mb-3">
+                        <label for="password"><span class="text-danger">*</span> Password :</label>
+                        <input type="password" name="password" id="password"
+                               class="form-control @error('password') is-invalid @enderror"
+                               placeholder="Masukkan password">
+                        @error('password')
+                        <small class="text-danger">{{ $message }}</small>
+                        @enderror
+                    </div>
+
+                    <!-- Konfirmasi Password -->
+                    <div class="col-md-6 col-12 mb-3">
+                        <label for="password_confirmation"><span class="text-danger">*</span> Konfirmasi Password :</label>
+                        <input type="password" name="password_confirmation" id="password_confirmation"
+                               class="form-control @error('password_confirmation') is-invalid @enderror"
+                               placeholder="Konfirmasi password">
+                        @error('password_confirmation')
+                        <small class="text-danger">{{ $message }}</small>
+                        @enderror
+                    </div>
+                </div>
+
+                <!-- Save Button -->
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-save mr-2"></i> Simpan
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 @endsection
