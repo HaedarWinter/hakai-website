@@ -30,13 +30,13 @@
     </div>
     <!-- Nav Data - User -->
     <li class="nav-item {{ $menuAdminUser ?? ''}}">
-        <a class="nav-link" href="{{route('user')}}" >
+        <a class="nav-link" href="{{route('user.index')}}" >
             <i class="fas fa-fw fa-user"></i>
             <span>Data User</span></a>
     </li>
     <!-- Nav Data - Tugas -->
     <li class="nav-item {{ $menuTugas ?? '' }} ">
-        <a class="nav-link" href="{{route('tugas')}}">
+        <a class="nav-link" href="{{route('tugas.index')}}">
             <i class="fas fa-fw fa-tasks"></i>
             <span>Data Tugas</span></a>
     </li>

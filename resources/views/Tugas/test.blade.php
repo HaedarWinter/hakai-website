@@ -8,7 +8,7 @@
     <div class="card">
         <div class="card-header d-flex flex-wrap justify-content-center justify-content-xl-between align-items-center py-3">
             <div class="mb-1 mr-2">
-                <a href="{{ route('tugas.create') }}" class="btn btn-sm btn-primary">
+                <a href="#" class="btn btn-sm btn-primary">
                     <i class="fas fa-plus mr-1"></i>
                     Tambah Data
                 </a>
@@ -16,12 +16,12 @@
 
             <div>
                 <span>Export ke</span>
-                <a href="{{route('tugas.excel')}}" class="btn btn-sm btn-success">
+                <a href="#" class="btn btn-sm btn-success">
                     <i class="fas fa-file-excel mr-1"></i>
                     Excel
                 </a>
                 <span class="mx-1">atau</span>
-                <a href="{{ route('tugas.pdf') }}" class="btn btn-sm btn-danger">
+                <a href="#" class="btn btn-sm btn-danger">
                     <i class="fas fa-file-pdf mr-1"></i>
                     PDF
                 </a>
@@ -29,43 +29,47 @@
         </div>
 
         <div class="card-body">
-            <div class="table-responsive ">
-                <table class="table table-bordered table-hover" id="dataTable" width="100%" cellspacing="0">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                     <thead class="thead-dark text-center">
                     <tr>
                         <th>No</th>
                         <th>Nama</th>
-                        <th>Tugas</th>
-                        <th>Tanggal Mulai</th>
-                        <th>Tanggal Selesai</th>
-                        <th class="text-center" style="width: 120px;">
+                        <th>Email</th>
+                        <th>Jabatan</th>
+                        <th>Status</th>
+                        <th class="text-center" style="width: 100px;">
                             <i class="fas fa-cog"></i>
                         </th>
                     </tr>
                     </thead>
                     <tbody>
-                    @foreach ($tugas as $item)
+                    @foreach ($user as $item)
                         <tr>
                             <td class="text-center">{{ $loop->iteration }}</td>
-                            <td>{{ $item->user->nama }}</td>
-                            <td>{{ $item->tugas }}</td>
+                            <td>{{ $item->nama }}</td>
+                            <td>{{ $item->email }}</td>
                             <td class="text-center">
-                                <span class="badge badge-dark">{{ $item->tanggal_mulai }}</span>
+                                @if($item->jabatan == 'Admin')
+                                    <span class="badge badge-success">{{ $item->jabatan }}</span>
+                                @else
+                                    <span class="badge badge-warning">{{ $item->jabatan }}</span>
+                                @endif
                             </td>
                             <td class="text-center">
-                                <span class="badge badge-danger">{{ $item->tanggal_selesai }}</span>
+                                @if($item->is_tugas)
+                                    <span class="badge badge-info">Aktif</span>
+                                @else
+                                    <span class="badge badge-secondary">Tidak Aktif</span>
+                                @endif
                             </td>
                             <td class="text-center">
-                                <button class="btn btn-sm btn-info" data-toggle="modal" data-target="#modalTugasShow{{ $item->id }}">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <a href="{{ route('tugas.edit', $item->id) }}" class="btn btn-sm btn-warning">
+                                <a href="#" class="btn btn-sm btn-warning">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <button class="btn btn-sm btn-danger" data-toggle="modal" data-target="#modalTugasDestroy{{ $item->id }}">
+                                <a href="#" class="btn btn-sm btn-danger">
                                     <i class="fas fa-trash"></i>
-                                </button>
-                                @include('admin/tugas/modal')
+                                </a>
                             </td>
                         </tr>
                     @endforeach
