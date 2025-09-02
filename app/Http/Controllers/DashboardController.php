@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -11,9 +12,29 @@ class DashboardController extends Controller
      */
     public function index()
     {
+        //Ambil Total Uaer
+        $totalUser = User::count();
+        $totalAdmin = User::where('jabatan', 'admin')->count();
+        $totalKaryawan = User::where('jabatan', 'karyawan')->count();
+
+        //Hitungan Persentasi Total User
+        $persentasiAdmin = $totalUser > 0 ? round(($totalAdmin/$totalUser) * 100, 1) : 0;
+        $persentasiKaryawan = $totalUser > 0 ? round(($totalKaryawan/$totalUser) * 100, 1) : 0;
+
+        //Format ke Ribuan
+        $formattedTotalUser = number_format($totalUser, 0, ',', '.') . ' User';
+        $formattedTotalAdmin = number_format($totalAdmin, 0, ',', '.') . ' Admin' ;
+        $formattedTotalKaryawan = number_format($totalKaryawan, 0, ',', '.') . ' Karyawan' ;
+
         $data = array(
             'title' => 'Dashboard',
-            'menuDashboard' => 'active'
+            'menuDashboard' => 'active',
+            'totalUser' => $formattedTotalUser,
+            'totalAdmin' => $formattedTotalAdmin,
+            'totalKaryawan' => $formattedTotalKaryawan,
+            'persentasiAdmin' => $persentasiAdmin,
+            'persentasiKaryawan' => $persentasiKaryawan,
+
         );
         return view('dashboard', $data);
 

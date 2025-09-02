@@ -20,8 +20,14 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'jabatan',
+        'is_tugas',
         'password',
     ];
+
+    public function tugas(){
+        return $this->hasOne(Tugas::class);
+    }
 
     /**
      * The attributes that should be hidden for serialization.

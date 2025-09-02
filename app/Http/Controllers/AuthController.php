@@ -33,7 +33,8 @@ class AuthController extends Controller
             //Regenerate session biar lebih aman (hindari session fixation)
             $request->session()->regenerate();
 
-            return redirect()->route('dashboard')->with('success', 'Selamat Datang Kembali!');
+            return redirect()->route('dashboard')
+                            ->with('success', "Selamat Datang Kembali, " . auth()->user()->nama);
         }
 
         //kalau gagal
