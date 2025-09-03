@@ -49,7 +49,13 @@
             <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
         </nav>
 
-        <a class="btn-getstarted" href="{{route('login')}}">Masuk</a>
+        @auth
+            <a class="btn-getstarted" href="{{route('dashboard')}}">Kembali ke Dashboard</a>
+        @else
+            <a class="btn-getstarted" href="{{route('login')}}">Masuk</a>
+        @endauth
+
+
 
     </div>
 </header>
@@ -123,15 +129,20 @@
 
                     <div class="mt-5">
                         <h5 class="mb-3 fw-bold">Siap lebih produktif? Yuk!</h5>
-                        <div class="d-flex  gap-3">
-                            <button type="button" class="btn btn-hakai px-4 rounded-pill">
-                                Daftar
-                            </button>
-                            <span class="text-muted p-1">atau</span>
-                            <a href="{{ route('login') }}" class="btn btn-outline-hakai px-4 rounded-pill">
-                                Masuk
-                            </a>
-                        </div>
+                        @auth
+                            <div class="d-flex  gap-3">
+                                <a href="{{ route('dashboard') }}" class="btn btn-outline-hakai px-4 rounded-pill">
+                                    Kembali ke Dashboard
+                                </a>
+                            </div>
+                        @else
+                            <div class="d-flex  gap-3">
+                                <a href="{{ route('login') }}" class="btn btn-outline-hakai px-4 rounded-pill">
+                                    Masuk
+                                </a>
+                            </div>
+                        @endauth
+
                     </div>
                 </div>
 
