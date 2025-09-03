@@ -12,13 +12,17 @@ Route::get('/', function () {
     ]);
 })->name('welcome');
 
-// Login
-Route::get('/login', [AuthController::class, 'login'])->name('login');
-Route::post('/login', [AuthController::class, 'loginProses'])->name('loginProses');
+Route::middleware('isLogin')->group(function () {
+    // Login
+    Route::get('/login', [AuthController::class, 'login'])->name('login');
+    Route::post('/login', [AuthController::class, 'loginProses'])->name('loginProses');
+    Route::get('/pdf', [TugasController::class, 'pdf'])->name('pdf');
+});
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Semua route ini butuh login
 Route::middleware('checkLogin')->group(function () {
+
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -33,7 +37,7 @@ Route::middleware('checkLogin')->group(function () {
         Route::post('/update/{id}', [TugasController::class, 'update'])->name('update');
         Route::delete('/destroy/{id}', [TugasController::class, 'destroy'])->name('destroy');
         Route::get('/excel', [TugasController::class, 'excel'])->name('excel');
-        Route::get('/pdf', [TugasController::class, 'pdf'])->name('pdf');
+
     });
 
     // Hanya admin bisa kelola user

@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
-class isAdmin
+class isLogin
 {
     /**
      * Handle an incoming request.
@@ -15,10 +15,10 @@ class isAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::user()->jabatan=='Admin'){
-            return $next($request);
-        } else {
-            return redirect()->route('dashboard') ->with('error', 'Anda Tidak Memiliki Akses');
+        if (Auth::check()){
+            return redirect()->route('dashboard')
+                ->with('success', 'Anda Sudah Login');
         }
+        return $next($request);
     }
 }
