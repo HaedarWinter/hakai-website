@@ -7,6 +7,7 @@ use App\Models\Tugas;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -18,14 +19,28 @@ class TugasController extends Controller
      */
     public function index()
     {
-        $data = [
-            'title'     => 'Data Tugas',
-            'menuTugas' => 'active',
-            // sekalian join sama user biar bisa nampilin nama karyawan
-            'tugas'     => Tugas::with('user')->get(),
-        ];
+        //Admin
+        $user = Auth::user();
+        if ($user->jabatan == 'Admin'){
 
-        return view('admin/tugas/index', $data);
+            $data = [
+                'title'     => 'Data Tugas',
+                'menuAdminTugas' => 'active',
+                // sekalian join sama user biar bisa nampilin nama karyawan
+                'tugas'     => Tugas::with('user')->get(),
+            ];
+            return view('admin/tugas/index', $data);
+        }else{
+            //Karyawan
+            $data = [
+                'title'     => 'Data Tugas',
+                'menuKaryawanTugas' => 'active',
+                // sekalian join sama user biar bisa nampilin nama karyawan
+                'tugas'     => Tugas::with('user')->where('user_id', $user->id)->first(),
+            ];
+            return view('karyawan/tugas/index', $data);
+        }
+
     }
 
     /**
