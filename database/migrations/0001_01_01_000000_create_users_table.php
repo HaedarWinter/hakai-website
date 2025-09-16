@@ -20,6 +20,8 @@ return new class extends Migration
             $table->boolean ('is_tugas')->default(false);
             $table->rememberToken();
             $table->timestamps();
+//          soft delete untuk didatabase
+            $table->softDeletes();
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

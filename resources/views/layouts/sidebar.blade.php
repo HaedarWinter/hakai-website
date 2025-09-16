@@ -36,7 +36,7 @@
                 <span>Data User</span></a>
         </li>
         <!-- Nav Data - Tugas -->
-        <li class="nav-item {{ $menuTugas ?? '' }} ">
+        <li class="nav-item {{ $menuAdminTugas ?? '' }} ">
             <a class="nav-link" href="{{route('tugas.index')}}">
                 <i class="fas fa-fw fa-tasks"></i>
                 <span>Data Tugas</span></a>

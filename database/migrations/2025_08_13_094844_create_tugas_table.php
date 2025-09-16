@@ -20,7 +20,10 @@ return new class extends Migration
             $table->text('tugas');
             $table->date('tanggal_mulai');
             $table->date('tanggal_selesai');
+            $table->string('tugas_file', 255)->nullable();
+            $table->enum('status', ['pending','approved','rejected'])->default('pending');
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

@@ -16,7 +16,7 @@ Route::middleware('isLogin')->group(function () {
     // Login
     Route::get('/login', [AuthController::class, 'login'])->name('login');
     Route::post('/login', [AuthController::class, 'loginProses'])->name('loginProses');
-    Route::get('/pdf', [TugasController::class, 'pdf'])->name('pdf');
+
 });
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
@@ -25,9 +25,10 @@ Route::middleware('checkLogin')->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
     // Semua user login (admin & karyawan) bisa lihat daftar tugas
     Route::get('/tugas', [TugasController::class, 'index'])->name('tugas.index');
+    Route::get('/pdf', [TugasController::class, 'pdf'])->name('pdf');
+    Route::post('/tugas/{id}/upload', [TugasController::class, 'upload'])->name('tugas.upload');
 
     // Hanya admin bisa CRUD tugas
     Route::middleware('isAdmin')->prefix('tugas')->name('tugas.')->group(function () {
@@ -38,6 +39,12 @@ Route::middleware('checkLogin')->group(function () {
         Route::delete('/destroy/{id}', [TugasController::class, 'destroy'])->name('destroy');
         Route::get('/excel', [TugasController::class, 'excel'])->name('excel');
 
+        // Semua user login bisa lihat daftar tugas
+        Route::get('/tugas', [TugasController::class, 'index'])->name('tugas.index');
+        Route::get('/pdf', [TugasController::class, 'pdf'])->name('pdf');
+        // Approval
+        Route::patch('/{id}/approve', [TugasController::class, 'approve'])->name('approve');
+        Route::patch('/{id}/reject', [TugasController::class, 'reject'])->name('reject');
     });
 
     // Hanya admin bisa kelola user
