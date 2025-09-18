@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Storage;
 
 class TugasController extends Controller
 {
@@ -26,7 +27,20 @@ class TugasController extends Controller
             $data = [
                 'title'     => 'Data Tugas',
                 'menuAdminTugas' => 'active',
-                'tugas'     => Tugas::with('user')->get(),
+                // Tambah whereHas untuk memastikan hanya tugas dengan user yang valid
+                'tugas' => Tugas::with(['user' => function($query) {
+                    $query->orderBy('nama', 'asc');
+                }])
+                    ->whereHas('user') // Hanya ambil tugas yang memiliki user
+                    ->orderByRaw("
+                CASE
+                    WHEN status = 'approved' THEN 1
+                    WHEN status = 'rejected' THEN 2
+                    ELSE 3
+                END
+            ")
+                    ->orderBy('tanggal_mulai', 'asc')
+                    ->get(),
             ];
             return view('admin/tugas/index', $data);
 
@@ -35,7 +49,17 @@ class TugasController extends Controller
             $data = [
                 'title'     => 'Data Tugas',
                 'menuKaryawanTugas' => 'active',
-                'tugas'     => Tugas::with('user')->where('user_id', $user->id)->get(),
+                'tugas'     => Tugas::with('user')
+                    ->where('user_id', $user->id)
+                    ->orderByRaw("
+                CASE
+                    WHEN status = 'approved' THEN 1
+                    WHEN status = 'rejected' THEN 2
+                    ELSE 3
+                END
+            ")
+                    ->orderBy('tanggal_mulai', 'asc')
+                    ->get(),
             ];
             return view('karyawan/tugas/index', $data);
         }
@@ -50,9 +74,7 @@ class TugasController extends Controller
         $data = [
             'title'          => 'Tambah Tugas',
             'menuAdminTugas' => 'active',
-            'user'           => User::where('jabatan', 'Karyawan')
-                ->where('is_tugas', false)
-                ->get(),
+            'user'           => User::where('jabatan', 'Karyawan')->get(),
         ];
 
         return view('admin/tugas/create', $data);
@@ -83,10 +105,16 @@ class TugasController extends Controller
         $tugas->tugas = $request->tugas;
         $tugas->tanggal_mulai = $request->tanggal_mulai;
         $tugas->tanggal_selesai = $request->tanggal_selesai;
-        $tugas->save();
+        $tugas->status = 'pending';
+        // Handle file upload
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $path = $file->storeAs('tugas_files', $filename, 'public');
+            $tugas->tugas_file = $path;
+        }
 
-        $user->is_tugas = true;
-        $user->save();
+        $tugas->save();
 
         return redirect()->route('tugas.index')->with('success', 'Tugas Berhasil Ditambahkan');
     }
@@ -94,11 +122,23 @@ class TugasController extends Controller
     /**
      * Belum dipake, bisa buat detail tugas kalau dibutuhin.
      */
-    public function show(string $id)
+    public function show($id)
     {
-        //
-    }
+        // Cek apakah $id adalah 'create' atau kata kunci lainnya
+        if (!is_numeric($id)) {
+            return redirect()->route('tugas.index')->with('error', 'ID tugas tidak valid');
+        }
 
+        $tugas = Tugas::with('user')->findOrFail($id);
+
+        $data = [
+            'title' => 'Detail Tugas',
+            'menuAdminTugas' => 'active',
+            'tugas' => $tugas,
+        ];
+
+        return view('admin/tugas/show', $data);
+    }
     /**
      * Form edit tugas.
      * Data tugas diambil sekalian sama relasi user biar gampang.
@@ -143,26 +183,21 @@ class TugasController extends Controller
      * Hapus tugas.
      * Setelah tugas dihapus, status user dikembalikan lagi ke is_tugas = false.
      */
-    public function destroy(string $id)
+    public function destroy($id)
     {
-        // pakai db agar data aman semisal data hapus nya error
-        DB::transaction(function () use ($id) {
-            $tugas = Tugas::findOrFail($id);
+        $tugas = Tugas::findOrFail($id);
 
-            // simpan user_id dulu sebelum delete
-            $userId = $tugas->user_id;
+        // Hapus file jika ada
+        if ($tugas->tugas_file) {
+            \Storage::disk('public')->delete($tugas->tugas_file);
+        }
+        if ($tugas->karyawan_file) {
+            \Storage::disk('public')->delete($tugas->karyawan_file);
+        }
 
-            $tugas->delete();
+        $tugas->delete();
 
-            // update status user biar bisa dapet tugas baru lagi
-            $user = User::find($userId);
-            if ($user) {
-                $user->is_tugas = false;
-                $user->save();
-            }
-        });
-
-        return redirect()->route('tugas.index')->with('success', 'Data Tugas Berhasil Dihapus');
+        return redirect()->route('tugas.index')->with('success', 'Tugas berhasil dihapus!');
     }
 
     public function approve($id)
@@ -174,13 +209,18 @@ class TugasController extends Controller
         return redirect()->back()->with('success', 'Tugas berhasil disetujui!');
     }
 
-    public function reject($id)
+    public function reject(Request $request, $id)
     {
+        $request->validate([
+            'catatan' => 'required|string|max:255',
+        ]);
+
         $tugas = Tugas::findOrFail($id);
         $tugas->status = 'rejected';
+        $tugas->catatan = $request->catatan;
         $tugas->save();
 
-        return back()->with('error', 'Tugas ditolak!');
+        return back()->with('error', 'Tugas ditolak dengan catatan: ' . $request->catatan);
     }
 
 
@@ -192,11 +232,22 @@ class TugasController extends Controller
 
         $tugas = Tugas::findOrFail($id);
 
-        // Simpan file ke storage/app/public/uploads/tugas
-        $filePath = $request->file('file')->store('uploads/tugas', 'public');
+        // Pastikan tugas milik user yang sedang login
+        if ($tugas->user_id != auth()->id()) {
+            return back()->with('error', 'Anda tidak memiliki akses ke tugas ini!');
+        }
 
-        // Simpan ke kolom tugas_file
-        $tugas->tugas_file = $filePath;
+        // Simpan file ke storage
+        $filePath = $request->file('file')->store('tugas_karyawan', 'public');
+
+        // Simpan ke kolom karyawan_file (bukan tugas_file)
+        $tugas->karyawan_file = $filePath;
+
+        // Jika status masih pending, ubah menjadi submitted
+        if ($tugas->status == 'pending') {
+            $tugas->status = 'submitted';
+        }
+
         $tugas->save();
 
         return back()->with('success', 'File berhasil diupload!');

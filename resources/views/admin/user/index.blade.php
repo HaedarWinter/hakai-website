@@ -59,12 +59,19 @@
                                     @else
                                     <span class="badge badge-warning"> {{ $item -> jabatan }}</span>
                                     @endif
-                            </td>
                             <td class="text-center">
-                                @if($item -> is_tugas)
-                                    <span class="badge badge-success">Sudah Ditugaskan</span>
+                                @if($item->jabatan == 'Admin')
+                                    @if($item->has_assigned_users ?? false)
+                                        <span class="badge badge-success">Admin Sudah Menugaskan</span>
+                                    @else
+                                        <span class="badge badge-info">Admin Belum Menugaskan</span>
+                                    @endif
                                 @else
-                                    <span class="badge badge-danger ">Belum Ditugaskan</span>
+                                    @if($item->is_tugas)
+                                        <span class="badge badge-success">Sudah Ditugaskan</span>
+                                    @else
+                                        <span class="badge badge-danger">Belum Ditugaskan</span>
+                                    @endif
                                 @endif
                             </td>
                             <td class="text-center">
@@ -84,4 +91,33 @@
             </div>
         </div>
     </div>
+@endsection
+
+@section('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+    <script>
+        $(document).ready(function() {
+            // Tampilkan notifikasi error jika ada
+            @if(session('error'))
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal Hapus',
+                text: "{{ session('error') }}",
+                timer: 3000,
+                showConfirmButton: false
+            });
+            @endif
+
+            // Tampilkan notifikasi success jika ada
+            @if(session('success'))
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil',
+                text: "{{ session('success') }}",
+                timer: 3000,
+                showConfirmButton: false
+            });
+            @endif
+        });
+    </script>
 @endsection

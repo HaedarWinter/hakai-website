@@ -6,25 +6,18 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::table('tugas', function (Blueprint $table) {
-            $table->string('status')->default('pending')->after('tanggal_selesai'); // pending, approved, rejected
+            $table->string('karyawan_file', 255)->nullable()->after('tugas_file');
+            $table->text('catatan')->nullable()->after('status');
         });
     }
 
-
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down()
+    public function down(): void
     {
         Schema::table('tugas', function (Blueprint $table) {
-            $table->dropColumn('status');
+            $table->dropColumn(['karyawan_file', 'catatan']);
         });
     }
 };

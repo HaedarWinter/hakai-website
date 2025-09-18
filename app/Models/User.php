@@ -16,7 +16,7 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     protected $fillable = [
-        'name',
+        'nama',
         'email',
         'jabatan',
         'is_tugas',
@@ -33,7 +33,9 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
-    public function tugas(){
+    // Di model User
+    public function tugas()
+    {
         return $this->hasMany(Tugas::class);
     }
 }

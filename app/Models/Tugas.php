@@ -2,29 +2,26 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Tugas extends Model
 {
-    use SoftDeletes;
+    use HasFactory;
 
     protected $fillable = [
         'user_id',
         'tugas',
         'tanggal_mulai',
         'tanggal_selesai',
-        'status',   // <--- tambahin ini
-    ];
-
-    protected $dates = [
-        'tanggal_mulai',
-        'tanggal_selesai',
-        'deleted_at',
+        'status',
+        'tugas_file', // File dari admin
+        'karyawan_file', // File dari karyawan
+        'catatan' // Catatan jika ditolak
     ];
 
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id', 'id');
+        return $this->belongsTo(User::class)->withTrashed(); // Jika menggunakan soft deletes
     }
 }
