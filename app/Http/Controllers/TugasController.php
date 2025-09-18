@@ -7,8 +7,10 @@ use App\Models\Tugas;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Storage;
 
 class TugasController extends Controller
 {
@@ -18,14 +20,49 @@ class TugasController extends Controller
      */
     public function index()
     {
-        $data = [
-            'title'     => 'Data Tugas',
-            'menuTugas' => 'active',
-            // sekalian join sama user biar bisa nampilin nama karyawan
-            'tugas'     => Tugas::with('user')->get(),
-        ];
+        $user = Auth::user();
 
-        return view('admin/tugas/index', $data);
+        if ($user->jabatan == 'Admin') {
+            // Admin -> lihat semua tugas
+            $data = [
+                'title'     => 'Data Tugas',
+                'menuAdminTugas' => 'active',
+                // Tambah whereHas untuk memastikan hanya tugas dengan user yang valid
+                'tugas' => Tugas::with(['user' => function($query) {
+                    $query->orderBy('nama', 'asc');
+                }])
+                    ->whereHas('user') // Hanya ambil tugas yang memiliki user
+                    ->orderByRaw("
+                CASE
+                    WHEN status = 'approved' THEN 1
+                    WHEN status = 'rejected' THEN 2
+                    ELSE 3
+                END
+            ")
+                    ->orderBy('tanggal_mulai', 'asc')
+                    ->get(),
+            ];
+            return view('admin/tugas/index', $data);
+
+        } else {
+            // Karyawan -> lihat tugas miliknya sendiri
+            $data = [
+                'title'     => 'Data Tugas',
+                'menuKaryawanTugas' => 'active',
+                'tugas'     => Tugas::with('user')
+                    ->where('user_id', $user->id)
+                    ->orderByRaw("
+                CASE
+                    WHEN status = 'approved' THEN 1
+                    WHEN status = 'rejected' THEN 2
+                    ELSE 3
+                END
+            ")
+                    ->orderBy('tanggal_mulai', 'asc')
+                    ->get(),
+            ];
+            return view('karyawan/tugas/index', $data);
+        }
     }
 
     /**
@@ -37,9 +74,7 @@ class TugasController extends Controller
         $data = [
             'title'          => 'Tambah Tugas',
             'menuAdminTugas' => 'active',
-            'user'           => User::where('jabatan', 'karyawan')
-                ->where('is_tugas', false)
-                ->get(),
+            'user'           => User::where('jabatan', 'Karyawan')->get(),
         ];
 
         return view('admin/tugas/create', $data);
@@ -51,33 +86,35 @@ class TugasController extends Controller
      */
     public function store(Request $request)
     {
-        // validasi form biar ga ada data kosong
         $request->validate([
-            'user_id'           => 'required|string|max:255',
-            'tugas'             => 'required',
-            'tanggal_mulai'     => 'required',
-            'tanggal_selesai'   => 'required',
+            'user_id' => 'required|string|max:255',
+            'tugas' => 'required',
+            'tanggal_mulai' => 'required',
+            'tanggal_selesai' => 'required',
         ], [
-            'user_id.required'          => 'Nama Tidak Boleh Kosong',
-            'tugas.required'            => 'Tugas Tidak Boleh Kosong',
-            'tanggal_mulai.required'    => 'Tanggal Mulai Tidak Boleh Kosong',
-            'tanggal_selesai.required'  => 'Tanggal Selesai Tidak Boleh Kosong',
+            'user_id.required' => 'Nama Tidak Boleh Kosong',
+            'tugas.required' => 'Tugas Tidak Boleh Kosong',
+            'tanggal_mulai.required' => 'Tanggal Mulai Tidak Boleh Kosong',
+            'tanggal_selesai.required' => 'Tanggal Selesai Tidak Boleh Kosong',
         ]);
 
-        // ambil user sesuai id yang dipilih
         $user = User::findOrFail($request->user_id);
 
-        // bikin record tugas baru
         $tugas = new Tugas;
-        $tugas->user_id         = $request->user_id;
-        $tugas->tugas           = $request->tugas;
-        $tugas->tanggal_mulai   = $request->tanggal_mulai;
+        $tugas->user_id = $request->user_id;
+        $tugas->tugas = $request->tugas;
+        $tugas->tanggal_mulai = $request->tanggal_mulai;
         $tugas->tanggal_selesai = $request->tanggal_selesai;
-        $tugas->save();
+        $tugas->status = 'pending';
+        // Handle file upload
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $path = $file->storeAs('tugas_files', $filename, 'public');
+            $tugas->tugas_file = $path;
+        }
 
-        // update user jadi "udah punya tugas"
-        $user->is_tugas = true;
-        $user->save();
+        $tugas->save();
 
         return redirect()->route('tugas.index')->with('success', 'Tugas Berhasil Ditambahkan');
     }
@@ -85,11 +122,23 @@ class TugasController extends Controller
     /**
      * Belum dipake, bisa buat detail tugas kalau dibutuhin.
      */
-    public function show(string $id)
+    public function show($id)
     {
-        //
-    }
+        // Cek apakah $id adalah 'create' atau kata kunci lainnya
+        if (!is_numeric($id)) {
+            return redirect()->route('tugas.index')->with('error', 'ID tugas tidak valid');
+        }
 
+        $tugas = Tugas::with('user')->findOrFail($id);
+
+        $data = [
+            'title' => 'Detail Tugas',
+            'menuAdminTugas' => 'active',
+            'tugas' => $tugas,
+        ];
+
+        return view('admin/tugas/show', $data);
+    }
     /**
      * Form edit tugas.
      * Data tugas diambil sekalian sama relasi user biar gampang.
@@ -134,26 +183,74 @@ class TugasController extends Controller
      * Hapus tugas.
      * Setelah tugas dihapus, status user dikembalikan lagi ke is_tugas = false.
      */
-    public function destroy(string $id)
+    public function destroy($id)
     {
-        // pakai db agar data aman semisal data hapus nya error
-        DB::transaction(function () use ($id) {
-            $tugas = Tugas::findOrFail($id);
+        $tugas = Tugas::findOrFail($id);
 
-            // simpan user_id dulu sebelum delete
-            $userId = $tugas->user_id;
+        // Hapus file jika ada
+        if ($tugas->tugas_file) {
+            \Storage::disk('public')->delete($tugas->tugas_file);
+        }
+        if ($tugas->karyawan_file) {
+            \Storage::disk('public')->delete($tugas->karyawan_file);
+        }
 
-            $tugas->delete();
+        $tugas->delete();
 
-            // update status user biar bisa dapet tugas baru lagi
-            $user = User::find($userId);
-            if ($user) {
-                $user->is_tugas = false;
-                $user->save();
-            }
-        });
+        return redirect()->route('tugas.index')->with('success', 'Tugas berhasil dihapus!');
+    }
 
-        return redirect()->route('tugas.index')->with('success', 'Data Tugas Berhasil Dihapus');
+    public function approve($id)
+    {
+        $tugas = Tugas::findOrFail($id);
+        $tugas->status = 'approved';
+        $tugas->save();
+
+        return redirect()->back()->with('success', 'Tugas berhasil disetujui!');
+    }
+
+    public function reject(Request $request, $id)
+    {
+        $request->validate([
+            'catatan' => 'required|string|max:255',
+        ]);
+
+        $tugas = Tugas::findOrFail($id);
+        $tugas->status = 'rejected';
+        $tugas->catatan = $request->catatan;
+        $tugas->save();
+
+        return back()->with('error', 'Tugas ditolak dengan catatan: ' . $request->catatan);
+    }
+
+
+    public function upload(Request $request, $id)
+    {
+        $request->validate([
+            'file' => 'required|mimes:pdf,doc,docx,png,jpg,jpeg|max:2048',
+        ]);
+
+        $tugas = Tugas::findOrFail($id);
+
+        // Pastikan tugas milik user yang sedang login
+        if ($tugas->user_id != auth()->id()) {
+            return back()->with('error', 'Anda tidak memiliki akses ke tugas ini!');
+        }
+
+        // Simpan file ke storage
+        $filePath = $request->file('file')->store('tugas_karyawan', 'public');
+
+        // Simpan ke kolom karyawan_file (bukan tugas_file)
+        $tugas->karyawan_file = $filePath;
+
+        // Jika status masih pending, ubah menjadi submitted
+        if ($tugas->status == 'pending') {
+            $tugas->status = 'submitted';
+        }
+
+        $tugas->save();
+
+        return back()->with('success', 'File berhasil diupload!');
     }
 
     public function excel()
@@ -167,68 +264,64 @@ class TugasController extends Controller
      */
     public function pdf()
     {
-        $tugas = Tugas::with('user')->orderBy('created_at', 'DESC')->get();
+        // Ambil user yang login
+        $user = Auth::user();
 
-        // Hitung statistik (mirip di TugasExport)
-        $totalTugas = $tugas->count();
-        $today = now();
+        if ($user->jabatan == 'Admin') {
+            $tugas = Tugas::with('user')->orderBy('created_at', 'DESC')->get();
+            $totalTugas = $tugas->count();
+            $today = now();
 
-        // Status berdasarkan tanggal
-        $tugasSelesai = $tugas->filter(function($item) use ($today) {
-            return $item->tanggal_selesai && $today->gte($item->tanggal_selesai);
-        })->count();
+            // Status berdasarkan tanggal
+            $tugasSelesai = $tugas->filter(fn($item) => $item->tanggal_selesai && $today->gte($item->tanggal_selesai))->count();
+            $tugasSedangBerjalan = $tugas->filter(fn($item) =>
+                $item->tanggal_mulai && $today->gte($item->tanggal_mulai) &&
+                (!$item->tanggal_selesai || $today->lt($item->tanggal_selesai))
+            )->count();
+            $tugasBelumMulai = $tugas->filter(fn($item) => $item->tanggal_mulai && $today->lt($item->tanggal_mulai))->count();
+            $tugasOverdue = $tugas->filter(fn($item) => $item->tanggal_selesai && $today->gt($item->tanggal_selesai))->count();
 
-        $tugasSedangBerjalan = $tugas->filter(function($item) use ($today) {
-            return $item->tanggal_mulai && $today->gte($item->tanggal_mulai) &&
-                (!$item->tanggal_selesai || $today->lt($item->tanggal_selesai));
-        })->count();
+            // Statistik per user
+            $totalUserBertugas = $tugas->pluck('user.id')->unique()->count();
 
-        $tugasBelumMulai = $tugas->filter(function($item) use ($today) {
-            return $item->tanggal_mulai && $today->lt($item->tanggal_mulai);
-        })->count();
+            $stats = [
+                'total' => $totalTugas,
+                'total_user_bertugas' => $totalUserBertugas,
+                'tugas_selesai' => $tugasSelesai,
+                'tugas_sedang_berjalan' => $tugasSedangBerjalan,
+                'tugas_belum_mulai' => $tugasBelumMulai,
+                'tugas_overdue' => $tugasOverdue,
+                'persentase_selesai' => $totalTugas > 0 ? round(($tugasSelesai / $totalTugas) * 100, 1) : 0,
+                'persentase_sedang_berjalan' => $totalTugas > 0 ? round(($tugasSedangBerjalan / $totalTugas) * 100, 1) : 0,
+                'persentase_belum_mulai' => $totalTugas > 0 ? round(($tugasBelumMulai / $totalTugas) * 100, 1) : 0,
+                'persentase_overdue' => $totalTugas > 0 ? round(($tugasOverdue / $totalTugas) * 100, 1) : 0,
+                'updated_at' => now()->format('d F Y H:i:s')
+            ];
 
-        // Status overdue
-        $tugasOverdue = $tugas->filter(function($item) use ($today) {
-            return $item->tanggal_selesai && $today->gt($item->tanggal_selesai);
-        })->count();
+            $data = [
+                'tugas' => $tugas,
+                'stats' => $stats,
+                'tanggal' => now()->format('d-m-Y'),
+                'jam' => now()->format('H:i:s'),
+            ];
 
-        // Statistik per user
-        $totalUserBertugas = $tugas->pluck('user.id')->unique()->count();
+            $filename = now()->format('Ymd_His');
+            $pdf = Pdf::loadView('admin/tugas/pdf', $data)
+                ->setPaper('A4', 'landscape');
 
-        $stats = [
-            'total' => $totalTugas,
-            'total_user_bertugas' => $totalUserBertugas,
-            'tugas_selesai' => $tugasSelesai,
-            'tugas_sedang_berjalan' => $tugasSedangBerjalan,
-            'tugas_belum_mulai' => $tugasBelumMulai,
-            'tugas_overdue' => $tugasOverdue,
-            'persentase_selesai' => $totalTugas > 0
-                ? round(($tugasSelesai / $totalTugas) * 100, 1)
-                : 0,
-            'persentase_sedang_berjalan' => $totalTugas > 0
-                ? round(($tugasSedangBerjalan / $totalTugas) * 100, 1)
-                : 0,
-            'persentase_belum_mulai' => $totalTugas > 0
-                ? round(($tugasBelumMulai / $totalTugas) * 100, 1)
-                : 0,
-            'persentase_overdue' => $totalTugas > 0
-                ? round(($tugasOverdue / $totalTugas) * 100, 1)
-                : 0,
-            'updated_at' => now()->format('d F Y H:i:s')
-        ];
+            return $pdf->download('DataTugas_'.$filename.'.pdf');
+        } else {
+            $data = [
+                'tanggal' => now()->format('d-m-Y'),
+                'jam' => now()->format('H:i:s'),
+                'tugas' => Tugas::with('user')->where('user_id', $user->id)->get(),
+            ];
 
-        // Data yang dikirim ke blade
-        $data = [
-            'tugas' => $tugas,
-            'stats' => $stats,
-            'tanggal' => now()->format('d-m-Y'),
-            'jam' => now()->format('H:i:s'),
-        ];
+            $filename = now()->format('Ymd_His');
+            $pdf = Pdf::loadView('karyawan/tugas/pdf', $data) // <- diganti biar sesuai role
+            ->setPaper('A4', 'portrait');
 
-        $filename = now()->format('Ymd_His');
-        $pdf = Pdf::loadView('admin/tugas/pdf', $data)
-            ->setPaper('A4', 'landscape');
-
-        return $pdf->download('DataTugas_'.$filename.'.pdf');
+            return $pdf->download('DataTugas_'.$filename.'.pdf');
+        }
     }
 }

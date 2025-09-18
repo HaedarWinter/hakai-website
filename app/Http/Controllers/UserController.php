@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exports\UserExport;
 use App\Models\User;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
@@ -15,12 +16,27 @@ class UserController extends Controller
     /**
      * Display a listing of the resource.
      */
+
+    use SoftDeletes;
+    // Di method index UserController
     public function index()
     {
+        $users = User::orderBy('jabatan', 'ASC')->get();
+
+        // Tambahkan logika untuk mengecek status penugasan admin
+        foreach ($users as $user) {
+            if ($user->jabatan == 'Admin') {
+                // Cek apakah ada user non-admin yang sudah ditugaskan
+                $user->has_assigned_users = User::whereHas('tugas') // Menggunakan whereHas untuk mengecek apakah user memiliki tugas
+                ->where('jabatan', '!=', 'Admin')
+                    ->exists();
+            }
+        }
+
         $data = array(
             'title' => 'Data User',
             'menuAdminUser' => 'active',
-            'user' => User::orderBy('jabatan', 'ASC')->get(),
+            'user' => $users,
         );
         return view('admin/user/index', $data);
     }
@@ -127,12 +143,18 @@ class UserController extends Controller
      */
     public function destroy(string $id)
     {
+        $user = User::findOrFail($id);
 
+        //Cek user bila masih memiliki tugas
+        if ($user->is_tugas) {
+            return redirect()->route('user.index')
+                             ->with('error', 'User Tidak Bisa Dihapus Karena Masih Memiliki Tugas');
+        }
         //pake DB agar user disimpan dulu sebelum dihapus(takutnya ada kesalahan)
-        DB::transaction(function () use ($id) {
-            $user = User::findOrFail($id);
+        DB::transaction(function () use ($user) {
             $user->delete();
         });
+
             return redirect()->route('user.index')->with('success', 'Data Berhasil Dihapus');
 
     }
@@ -146,7 +168,14 @@ class UserController extends Controller
     public function pdf()
     {
         $users = User::orderBy('jabatan', 'ASC')->get();
-
+        // Tambahkan logika untuk mengecek status penugasan admin
+        foreach ($users as $user) {
+            if ($user->jabatan == 'Admin') {
+                $user->has_assigned_users = User::whereHas('tugas')
+                    ->where('jabatan', '!=', 'Admin')
+                    ->exists();
+            }
+        }
         // Hitung statistik (mirip di UserExport)
         $adminCount = $users->where('jabatan', 'Admin')->count();
         $userCount = $users->whereNotIn('jabatan', ['Admin'])->count();

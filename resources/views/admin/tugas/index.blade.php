@@ -5,6 +5,13 @@
         {{ $title }}
     </h1>
 
+    {{-- Notifikasi --}}
+    @if(session('success'))
+        <div class="alert alert-success">{{ session('success') }}</div>
+    @elseif(session('error'))
+        <div class="alert alert-danger">{{ session('error') }}</div>
+    @endif
+
     <div class="card">
         <div class="card-header d-flex flex-wrap justify-content-center justify-content-xl-between align-items-center py-3">
             <div class="mb-1 mr-2">
@@ -29,43 +36,81 @@
         </div>
 
         <div class="card-body">
-            <div class="table-responsive ">
+            <div class="table-responsive">
                 <table class="table table-bordered table-hover" id="dataTable" width="100%" cellspacing="0">
                     <thead class="thead-dark text-center">
                     <tr>
                         <th>No</th>
                         <th>Nama</th>
+                        <th>Email</th>
                         <th>Tugas</th>
                         <th>Tanggal Mulai</th>
                         <th>Tanggal Selesai</th>
-                        <th class="text-center" style="width: 120px;">
-                            <i class="fas fa-cog"></i>
-                        </th>
+                        <th>File</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
                     </tr>
                     </thead>
                     <tbody>
-                    @foreach ($tugas as $item)
+                    @foreach($tugas as $i => $t)
                         <tr>
-                            <td class="text-center">{{ $loop->iteration }}</td>
-                            <td>{{ $item->user->nama }}</td>
-                            <td>{{ $item->tugas }}</td>
-                            <td class="text-center">
-                                <span class="badge badge-dark">{{ $item->tanggal_mulai }}</span>
+                            <td>{{ $i+1 }}</td>
+                            <td>{{ $t->user ? $t->user->nama : 'User tidak ditemukan' }}</td>
+                            <td>
+                                @if($t->user)
+                                    <span class="badge badge-primary">{{ $t->user->email }}</span>
+                                @else
+                                    <span class="badge badge-secondary">-</span>
+                                @endif
+                            </td>
+                            <td>{{ $t->tugas }}</td>
+                            <td><span class="badge badge-warning">{{ $t->tanggal_mulai }}</span></td>
+                            <td><span class="badge badge-danger">{{ $t->tanggal_selesai }}</span></td>
+                            <td>
+                                @if($t->tugas_file || $t->karyawan_file)
+                                    <div class="btn-group">
+                                        @if($t->tugas_file)
+                                            <a href="{{ asset('storage/'.$t->tugas_file) }}" class="btn btn-sm btn-info" target="_blank" title="File Admin">
+                                                <i class="fas fa-file"></i>
+                                            </a>
+                                        @endif
+                                        @if($t->karyawan_file)
+                                            <a href="{{ asset('storage/'.$t->karyawan_file) }}" class="btn btn-sm btn-success" target="_blank" title="File Karyawan">
+                                                <i class="fas fa-file"></i>
+                                            </a>
+                                        @endif
+                                    </div>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
+                            <td>
+                                @php
+                                    $status = strtolower(trim($t->status));
+                                    $statusClass = 'secondary';
+                                    if($status == 'pending') $statusClass = 'warning';
+                                    elseif($status == 'submitted') $statusClass = 'info';
+                                    elseif($status == 'rejected') $statusClass = 'danger';
+                                    elseif($status == 'approved') $statusClass = 'success';
+                                @endphp
+                                <span class="badge badge-{{ $statusClass }}">{{ ucfirst($status) }}</span>
                             </td>
                             <td class="text-center">
-                                <span class="badge badge-danger">{{ $item->tanggal_selesai }}</span>
-                            </td>
-                            <td class="text-center">
-                                <button class="btn btn-sm btn-info" data-toggle="modal" data-target="#modalTugasShow{{ $item->id }}">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <a href="{{ route('tugas.edit', $item->id) }}" class="btn btn-sm btn-warning">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <button class="btn btn-sm btn-danger" data-toggle="modal" data-target="#modalTugasDestroy{{ $item->id }}">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                                @include('admin/tugas/modal')
+                                <div class="btn-group">
+                                    <a href="{{ route('tugas.show', $t->id) }}" class="btn btn-sm btn-primary" title="Detail">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ route('tugas.edit', $t->id) }}" class="btn btn-sm btn-warning" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form action="{{ route('tugas.destroy', $t->id) }}" method="POST" style="display: inline;">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-danger" title="Hapus" onclick="return confirm('Apakah Anda yakin ingin menghapus tugas ini?')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     @endforeach
@@ -74,4 +119,18 @@
             </div>
         </div>
     </div>
+@endsection
+
+@section('scripts')
+    <script>
+        $(document).ready(function() {
+            $('#dataTable').DataTable({
+                responsive: true,
+                pageLength: 10,
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/id.json'
+                }
+            });
+        });
+    </script>
 @endsection

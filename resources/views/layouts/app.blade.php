@@ -210,10 +210,18 @@
         <!-- End of Main Content -->
 
         <!-- Footer -->
+        @php
+            $startYear = 2025;
+            $currentYear = date('Y')
+        @endphp
         <footer class="sticky-footer bg-white">
             <div class="container my-auto">
                 <div class="copyright text-center my-auto">
-                    <span>Copyright &copy; Hakai 2025 All Right Reserved.</span>
+                    <span>
+                         Copyright &copy; Hakai
+                        {{ $startYear == $currentYear ? $startYear : $startYear . ' - ' . $currentYear }}
+                        All Right Reserved.
+                    </span>
                 </div>
             </div>
         </footer>
